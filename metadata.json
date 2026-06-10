@@ -1,0 +1,6 @@
+{
+  "name": "ذاكر بذكاء",
+  "description": "تطبيق تعليمي متكامل للتذاكر الذكية باستخدام الذكاء الاصطناعي لتلخيص المحتوى وإنشاء الاختبارات والبطاقات التعليمية وشرح الدروس",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
