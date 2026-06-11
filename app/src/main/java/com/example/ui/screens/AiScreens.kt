@@ -1,6 +1,10 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -1292,6 +1296,261 @@ fun SavedVideosScreen(viewModel: AppViewModel) {
 }
 
 @Composable
+fun ProjectorScreenAnimator(isPlaying: Boolean, slideTitle: String, slideVisuals: String) {
+    val infiniteTransition = rememberInfiniteTransition(label = "Projector")
+    
+    // Rotation Angle for orbiting elements
+    val rotationAngle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 10000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "Orbit"
+    )
+
+    // Pulsing Scale
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 0.9f,
+        targetValue = 1.1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "Pulse"
+    )
+
+    // Waveform scale factors for sound simulation
+    val waveHeight1 by infiniteTransition.animateFloat(
+        initialValue = 0.2f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 350, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "Wave1"
+    )
+    val waveHeight2 by infiniteTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = 0.3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 420, easing = FastOutLinearInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "Wave2"
+    )
+    val waveHeight3 by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 280, easing = LinearOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "Wave3"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(150.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(Color(0xFF1E293B), Color(0xFF0F172A)),
+                    radius = 500f
+                )
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+            val canvasWidth = size.width
+            val canvasHeight = size.height
+            val centerX = canvasWidth / 2f
+            val centerY = canvasHeight / 2f
+
+            // 1. Draw grid backdrop representing camera viewfinder
+            val gridColor = Color(0xFF334155).copy(alpha = 0.2f)
+            val stepX = canvasWidth / 10
+            val stepY = canvasHeight / 6
+            for (i in 1..9) {
+                drawLine(gridColor, start = androidx.compose.ui.geometry.Offset(stepX * i, 0f), end = androidx.compose.ui.geometry.Offset(stepX * i, canvasHeight), strokeWidth = 1f)
+            }
+            for (i in 1..5) {
+                drawLine(gridColor, start = androidx.compose.ui.geometry.Offset(0f, stepY * i), end = androidx.compose.ui.geometry.Offset(canvasWidth, stepY * i), strokeWidth = 1f)
+            }
+
+            // 2. Draw Scientific Moving Illustrations
+            val docText = (slideTitle + " " + slideVisuals).lowercase()
+            if (docText.contains("خلية") || docText.contains("أحياء") || docText.contains("biology") || docText.contains("dna") || docText.contains("وراثة")) {
+                // A. BIOLOGY: Pulsing bio-cell structure with rotating cytoplasm details
+                val cellColor = Color(0xFF10B981) // Emerald
+                val nucleusColor = Color(0xFFEF4444) // Red
+                
+                // Outer Cell Wall
+                drawCircle(
+                    color = cellColor.copy(alpha = 0.15f),
+                    radius = 50f * pulseScale,
+                    center = androidx.compose.ui.geometry.Offset(centerX, centerY)
+                )
+                drawCircle(
+                    color = cellColor,
+                    radius = 50f * pulseScale,
+                    center = androidx.compose.ui.geometry.Offset(centerX, centerY),
+                    style = Stroke(width = 3f)
+                )
+
+                // Nucleus
+                drawCircle(
+                    color = nucleusColor,
+                    radius = 14f * pulseScale,
+                    center = androidx.compose.ui.geometry.Offset(centerX, centerY)
+                )
+                
+                // Nuclear pores/nucleolus
+                drawCircle(
+                    color = Color.White.copy(alpha = 0.8f),
+                    radius = 4f,
+                    center = androidx.compose.ui.geometry.Offset(centerX - 3f, centerY - 2f)
+                )
+
+                // Rotating organelles around nucleus
+                val organelleDist = 34f
+                val count = 4
+                for (i in 0 until count) {
+                    val angleRad = Math.toRadians((rotationAngle + (i * (360 / count))).toDouble())
+                    val orgX = centerX + (organelleDist * Math.cos(angleRad)).toFloat()
+                    val orgY = centerY + (organelleDist * Math.sin(angleRad)).toFloat()
+                    drawCircle(
+                        color = Color(0xFFFBBF24), // Amber
+                        radius = 5f,
+                        center = androidx.compose.ui.geometry.Offset(orgX, orgY)
+                    )
+                }
+            } else if (docText.contains("كيمياء") || docText.contains("تفاعل") || docText.contains("كيميائي") || docText.contains("روابط") || docText.contains("ذرة") || docText.contains("جزئ")) {
+                // B. CHEMISTRY: Orbiting Electron Atom Model
+                val atomColor = Color(0xFF60A5FA) // Blue Light
+                drawCircle(
+                    color = Color(0xFFF59E0B), // Golden Nucleus Core
+                    radius = 9f,
+                    center = androidx.compose.ui.geometry.Offset(centerX, centerY)
+                )
+                
+                // Elliptical Orbit Paths
+                val rX = 70f
+                val rY = 22f
+
+                // Slide Elliptic Orbit 1
+                rotate(degrees = 45f, pivot = androidx.compose.ui.geometry.Offset(centerX, centerY)) {
+                    drawOval(
+                        color = atomColor.copy(alpha = 0.25f),
+                        topLeft = androidx.compose.ui.geometry.Offset(centerX - rX, centerY - rY),
+                        size = androidx.compose.ui.geometry.Size(rX * 2, rY * 2),
+                        style = Stroke(width = 2f)
+                    )
+                    // Draw spinning electron on orbit 1
+                    val angleRad1 = Math.toRadians(rotationAngle.toDouble() * 2)
+                    val eX1 = centerX + (rX * Math.cos(angleRad1)).toFloat()
+                    val eY1 = centerY + (rY * Math.sin(angleRad1)).toFloat()
+                    drawCircle(atomColor, radius = 5f, center = androidx.compose.ui.geometry.Offset(eX1, eY1))
+                }
+
+                // Slide Elliptic Orbit 2
+                rotate(degrees = -45f, pivot = androidx.compose.ui.geometry.Offset(centerX, centerY)) {
+                    drawOval(
+                         color = atomColor.copy(alpha = 0.25f),
+                         topLeft = androidx.compose.ui.geometry.Offset(centerX - rX, centerY - rY),
+                         size = androidx.compose.ui.geometry.Size(rX * 2, rY * 2),
+                         style = Stroke(width = 2f)
+                    )
+                    // Draw spinning electron on orbit 2
+                    val angleRad2 = Math.toRadians((rotationAngle + 180).toDouble() * 2)
+                    val eX2 = centerX + (rX * Math.cos(angleRad2)).toFloat()
+                    val eY2 = centerY + (rY * Math.sin(angleRad2)).toFloat()
+                    drawCircle(Color(0xFFEC407A), radius = 5f, center = androidx.compose.ui.geometry.Offset(eX2, eY2))
+                }
+            } else if (docText.contains("فيزياء") || docText.contains("حركة") || docText.contains("قانون") || docText.contains("سرعة") || docText.contains("تسارع")) {
+                // C. PHYSICS: Swinging Pendulum and acceleration vector arrows
+                val primaryColor = Color(0xFFF472B6)
+                // Ceiling
+                drawLine(Color.White.copy(alpha = 0.5f), start = androidx.compose.ui.geometry.Offset(centerX - 30f, centerY - 50f), end = androidx.compose.ui.geometry.Offset(centerX + 30f, centerY - 50f), strokeWidth = 4f)
+                
+                // Swing angle
+                val angleRad = Math.toRadians(25.0 * Math.sin(Math.toRadians(rotationAngle.toDouble() * 1.5)))
+                val lengthSec = 60f
+                val weightX = centerX + (lengthSec * Math.sin(angleRad)).toFloat()
+                val weightY = centerY - 50f + (lengthSec * Math.cos(angleRad)).toFloat()
+
+                // Cord
+                drawLine(Color.White, start = androidx.compose.ui.geometry.Offset(centerX, centerY - 50f), end = androidx.compose.ui.geometry.Offset(weightX, weightY), strokeWidth = 2f)
+                // Pendulum weight
+                drawCircle(primaryColor, radius = 10f * pulseScale, center = androidx.compose.ui.geometry.Offset(weightX, weightY))
+                drawCircle(Color.White, radius = 3f, center = androidx.compose.ui.geometry.Offset(weightX - 2f, weightY - 2f))
+            } else {
+                // D. DEFAULT: Sparkling Intelligence Network Node (Galaxy Concept)
+                val nodeColor = Color(0xFFFFB74D) // Vivid Amber
+                drawCircle(
+                    color = nodeColor.copy(alpha = 0.12f),
+                    radius = 60f * pulseScale,
+                    center = androidx.compose.ui.geometry.Offset(centerX, centerY)
+                )
+
+                val count = 6
+                val radius = 45f
+                for (i in 0 until count) {
+                    val nodeRad = Math.toRadians((rotationAngle + (i * (360 / count))).toDouble())
+                    val nx = centerX + (radius * Math.cos(nodeRad)).toFloat()
+                    val ny = centerY + (radius * Math.sin(nodeRad)).toFloat()
+
+                    // Connect edges
+                    drawLine(
+                        color = Color.White.copy(alpha = 0.15f),
+                        start = androidx.compose.ui.geometry.Offset(centerX, centerY),
+                        end = androidx.compose.ui.geometry.Offset(nx, ny),
+                        strokeWidth = 2f
+                    )
+                    drawCircle(nodeColor, radius = 6f, center = androidx.compose.ui.geometry.Offset(nx, ny))
+                    drawCircle(Color.White, radius = 2f, center = androidx.compose.ui.geometry.Offset(nx, ny))
+                }
+                
+                // Core
+                drawCircle(Color(0xFFFF6D00), radius = 10f * pulseScale, center = androidx.compose.ui.geometry.Offset(centerX, centerY))
+            }
+
+            // 3. Audio Equalizer Visualization Overlay (bottom aligned, only moves when isPlaying)
+            val barCount = 18
+            val barSpace = 8f
+            val barWidth = 6f
+            val startOffsetX = centerX - ((barCount * (barWidth + barSpace)) / 2f)
+            
+            for (i in 0 until barCount) {
+                // Random-looking bounce ratios based on indexes and infinite transitions
+                val bounceMultiplier = if (isPlaying) {
+                     when (i % 3) {
+                         0 -> waveHeight1
+                         1 -> waveHeight2
+                         else -> waveHeight3
+                     }
+                } else {
+                     0.08f // Tiny idle state indicator
+                }
+                
+                val maxBarHeight = 35f
+                val activeHeight = maxBarHeight * bounceMultiplier
+                val xPos = startOffsetX + (i * (barWidth + barSpace))
+                val yPos = canvasHeight - 10f - activeHeight
+
+                drawRect(
+                    color = Color(0xFFFF6D00), // Vibrant Orange
+                    topLeft = androidx.compose.ui.geometry.Offset(xPos, yPos),
+                    size = androidx.compose.ui.geometry.Size(barWidth, activeHeight)
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun PdfToVideoPlayerScreen(viewModel: AppViewModel) {
     val slides = viewModel.activeVideoSlides
     val currentIdx = viewModel.activeVideoSlideIdx.value
@@ -1649,61 +1908,69 @@ fun PdfToVideoPlayerScreen(viewModel: AppViewModel) {
         // Virtual Screen Canvas (Player)
         Card(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(280.dp),
-            colors = CardDefaults.cardColors(containerColor = StudyBluePrimary),
+                .fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
             shape = RoundedCornerShape(24.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
         ) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+            Column(
+                modifier = Modifier.padding(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Render our fully animated 3D scientific projector and audio visualizer
+                ProjectorScreenAnimator(
+                    isPlaying = isPlaying,
+                    slideTitle = activeSlide.title,
+                    slideVisuals = activeSlide.slideVisuals
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Box(
+                    modifier = Modifier
+                        .background(StudyBluePrimary.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = "شريحة ${currentIdx + 1} من ${slides.size}",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
                     Text(
-                        text = activeSlide.title,
-                        color = Color.White,
-                        fontSize = 24.sp,
+                        text = "جاري عرض شريحة ${currentIdx + 1} من ${slides.size}",
+                        color = StudyBluePrimary,
                         fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(
-                        text = activeSlide.slideVisuals,
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontSize = 13.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    Text(
-                        text = if (isPlaying) "🔊 المعلم يقرأ السكريبت الصوتي الآن..." else "⏸️ تشغيل الصوتيات",
-                        color = StudyOrangeAccent,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
+                        fontSize = 11.sp
                     )
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = activeSlide.title,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "🎬 وصف الحركة والمخطط البصري: " + activeSlide.slideVisuals,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    fontSize = 11.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = if (isPlaying) "🔊 المعلم يقرأ السكريبت الصوتي الآن..." else "⏸️ الشرح الصوتي متوقف مؤقتاً",
+                    color = StudyOrangeAccent,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
 

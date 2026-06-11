@@ -85,6 +85,8 @@ fun MainAppContent(viewModel: AppViewModel, isDarkMode: MutableState<Boolean>) {
                 is Screen.PdfSummary -> PdfSummaryWorkspaceScreen(viewModel)
                 is Screen.PdfToVideo -> PdfToVideoPlayerScreen(viewModel)
                 is Screen.Exams -> ExamsScreen(viewModel)
+                is Screen.Flashcards -> FlashcardsScreen(viewModel)
+                is Screen.MindMaps -> MindMapsScreen(viewModel)
 
                 // Secondary dashboards and profiles
                 is Screen.TeacherDashboard -> TeacherDashboardScreen(viewModel)

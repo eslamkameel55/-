@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -655,17 +656,17 @@ fun StudentHomeScreen(viewModel: AppViewModel) {
             }
         }
 
-        // Pair 5: Subject Curriculum & Premium Subscriptions
+        // Pair 5: Subject Curriculum & Saved PDF Documents
         Row(modifier = Modifier.fillMaxWidth()) {
             Box(modifier = Modifier.weight(1f)) {
                 PortalWidget3D(
-                    title = "باقة عضوية العباقرة",
-                    subtitle = "وصول كامل لكافة أدوات الذكاء",
-                    icon = Icons.Default.Star,
+                    title = "مستندات وملفات PDF",
+                    subtitle = "تلخيص الكتب والكتب الدراسية المرفوعة",
+                    icon = Icons.Default.Build,
                     color = StudyBluePrimary,
-                    badgeText = "ترقية 💎"
+                    badgeText = "ملفاتي 📂"
                 ) {
-                    viewModel.navigateTo(Screen.Subscriptions)
+                    viewModel.navigateTo(Screen.SavedFiles)
                 }
             }
             Box(modifier = Modifier.weight(1f)) {
@@ -1332,6 +1333,246 @@ fun ResultsTrackerScreen(viewModel: AppViewModel) {
                                 Text("تاريخ تقديم الامتحان: $dateFormatted", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun FlashcardsScreen(viewModel: AppViewModel) {
+    val materials by viewModel.filesList.collectAsState()
+    var selectedMat by remember { mutableStateOf<StudyMaterialEntity?>(null) }
+    val horizontalScrollState = androidx.compose.foundation.rememberScrollState()
+
+    // Auto-select first material if none is selected
+    LaunchedEffect(materials) {
+        if (selectedMat == null && materials.isNotEmpty()) {
+            selectedMat = materials.first()
+        }
+    }
+
+    LaunchedEffect(selectedMat) {
+        selectedMat?.id?.let { matId ->
+            viewModel.fetchFlashcardsForMaterial(matId)
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.End
+    ) {
+        // Toolbar Row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = { viewModel.navigateBack() }) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+            }
+            Text(
+                text = "مراجعة بطاقات الاستذكار 🧠",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Right
+            )
+        }
+
+        Text(
+            text = "طريقة الحفظ الأسرع بالتكرار المتباعد والتلقين الذكي.",
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+            textAlign = TextAlign.Right,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+        )
+
+        if (materials.isEmpty()) {
+            EmptyStateView(
+                title = "لم يتم العثور على أي ملفات دراسية",
+                description = "لالبدء، يرجى ملء مكتبتك عبر رفع ملف PDF أو موضوع علمي من لوحة التحكم الرئيسية."
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = { viewModel.navigateTo(Screen.SavedFiles) },
+                colors = ButtonDefaults.buttonColors(containerColor = StudyBluePrimary),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) {
+                Text("المكتبة والرفع ⚡", fontWeight = FontWeight.Bold, color = Color.White)
+            }
+        } else {
+            // Horizontal material chips selector
+            Text(
+                text = "اختر الدرس أو الموضوع للمذاكرة:",
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+                textAlign = TextAlign.Right,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+                    .horizontalScroll(horizontalScrollState),
+                horizontalArrangement = Arrangement.End
+            ) {
+                materials.forEach { mat ->
+                    val isSelected = selectedMat?.id == mat.id
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isSelected) StudyOrangeAccent else MaterialTheme.colorScheme.surfaceVariant)
+                            .clickable { selectedMat = mat }
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = mat.title,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+
+            // Render Flashcards Interactive Deck View
+            selectedMat?.let { mat ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)),
+                    shape = RoundedCornerShape(24.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                ) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        FlashcardsTab(viewModel = viewModel, mat = mat)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun MindMapsScreen(viewModel: AppViewModel) {
+    val materials by viewModel.filesList.collectAsState()
+    var selectedMat by remember { mutableStateOf<StudyMaterialEntity?>(null) }
+    val horizontalScrollState = androidx.compose.foundation.rememberScrollState()
+
+    // Auto-select first material if none is selected
+    LaunchedEffect(materials) {
+        if (selectedMat == null && materials.isNotEmpty()) {
+            selectedMat = materials.first()
+        }
+    }
+
+    LaunchedEffect(selectedMat) {
+        selectedMat?.let { mat ->
+            viewModel.fetchOrGenerateMindMap(mat) {}
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.End
+    ) {
+        // Toolbar Row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = { viewModel.navigateBack() }) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+            }
+            Text(
+                text = "الخرائط الذهنية الذكية 🗺️",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Right
+            )
+        }
+
+        Text(
+            text = "مخططات مفاهيمية مرئية تربط جزيئات الدروس وتسهل الحفظ والتذكر.",
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+            textAlign = TextAlign.Right,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+        )
+
+        if (materials.isEmpty()) {
+            EmptyStateView(
+                title = "لم يتم العثور على أي ملفات دراسية",
+                description = "للقيام برسم خرائط ذهنية تفاعلية، يرجى ملء مكتبتك أولاً عبر كتابة نصوص أو رفع مستند."
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = { viewModel.navigateTo(Screen.SavedFiles) },
+                colors = ButtonDefaults.buttonColors(containerColor = StudyBluePrimary),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) {
+                Text("المكتبة والرفع ⚡", fontWeight = FontWeight.Bold, color = Color.White)
+            }
+        } else {
+            // Horizontal material chips selector
+            Text(
+                text = "اختر الدرس لرسم خريطته الذهنية:",
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+                textAlign = TextAlign.Right,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+                    .horizontalScroll(horizontalScrollState),
+                horizontalArrangement = Arrangement.End
+            ) {
+                materials.forEach { mat ->
+                    val isSelected = selectedMat?.id == mat.id
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isSelected) StudyBluePrimary else MaterialTheme.colorScheme.surfaceVariant)
+                            .clickable { selectedMat = mat }
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = mat.title,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+
+            // Render Mind Map Node View
+            selectedMat?.let { mat ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)),
+                    shape = RoundedCornerShape(24.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                ) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        MindmapTab(viewModel = viewModel, mat = mat)
                     }
                 }
             }
