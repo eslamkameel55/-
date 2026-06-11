@@ -426,6 +426,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Te
     val inputMaterialTitle = mutableStateOf("")
     val inputMaterialText = mutableStateOf("")
     val selectedFileType = mutableStateOf("PDF") // PDF, PPT, WORD, IMAGE
+    val uploadedFileBase64 = mutableStateOf<String?>(null)
+    val uploadedFileMimeType = mutableStateOf<String?>(null)
     val isUploadLoading = mutableStateOf(false)
     val activeMaterial = mutableStateOf<StudyMaterialEntity?>(null)
 
@@ -434,29 +436,85 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Te
         val content = inputMaterialText.value.trim()
         val type = selectedFileType.value
 
-        if (title.isEmpty() || content.isEmpty()) return
+        if (title.isEmpty()) return
         isUploadLoading.value = true
 
         viewModelScope.launch(Dispatchers.IO) {
-            val systemPrompt = "أنت معاون أكاديمي وتلخيصي فائق الذكاء، تلخص المستندات الدراسية بدقة وإتقان مع إبراز العناصر الهامة بلغة عربية سلسلة تناسب الفهم الفائق."
-            val summarizePrompt = "قم بعمل تلخيص بليغ ومفصل ومنسق ومقسم إلى فقرات للمستند التعليمي المعنون بـ: \"$title\":\n\n$content"
+            val systemPrompt = """
+                أنت معاون أكاديمي ومحلل مستندات فائق الذكاء ومصمم مناهج تعليمية محترف لجميع المراحل الدراسية. 
+                قم بقراءة ومسح الملف المرفق (سواء كان صورة مستند أو PDF) بالكامل بدقة متناهية لتلخيصه وصياغته دراسياً.
+                يجب أن ترجع المخرجات حصرياً بتنسيق JSON يحوي الكائن التالي ومفاتيح باللغة الإنجليزية:
+                {
+                  "studyText": "شرح تعليمي كامل ومفصل ومنظم للغاية ومنسق بعناوين واضحة مستخلص من تفاصيل المستند المرفق ليكون المرجعية الأساسية للطالب للمذاكرة.",
+                  "summary": "تلخيص بليغ وموجز منسق على شكل نقاط (Bulleted list) تبرز أهم الأفكار والمصطلحات الرئيسية لتسهيل المذاكرة السريعة والتثبيت."
+                }
+                تنبيه هام للغاية: أعد كود الـ JSON فقط، لا تضع علامات ماركداون (مثل ```json)، ولا تضع نصوص التفافية أخرى إطلاقاً ليسهل تحليل الـ JSON برمجياً.
+            """.trimIndent()
 
-            val summaryResult = GeminiService.generateContent(
-                prompt = summarizePrompt,
-                systemInstruction = systemPrompt
-            )
+            val prompt = "قم بتحليل هذا المستند المعنون بـ: \"$title\" بعناية فائقة واستخرج الشرح والتلخيص للبدء بالمذاكرة."
 
-            val cleanSummary = if (summaryResult == "API_KEY_MISSING") {
-                "ملخص محلي سريع ومبسط:\nتم تلقي المستند بنجاح! للتلخيص الفائق والشامل عبر الذكاء الاصطناعي التوليدي، يرجى تهيئة مفتاح Gemini API Secure Key في خيارات المعاملات لـ AI Studio.\nموجز النص المرفوع:\n${content.take(150)}..."
+            val base64 = uploadedFileBase64.value
+            val mime = uploadedFileMimeType.value
+
+            var parsedStudyText = content
+            var parsedSummary = ""
+
+            if (base64 != null && mime != null) {
+                val apiResponse = GeminiService.generateMultimodalContent(
+                    prompt = prompt,
+                    mimeType = mime,
+                    base64Data = base64,
+                    systemInstruction = systemPrompt,
+                    responseJsonSchema = true
+                )
+
+                if (apiResponse != "API_KEY_MISSING" && !apiResponse.startsWith("ERROR_") && !apiResponse.startsWith("عذراً")) {
+                    try {
+                        val sanitized = GeminiService.sanitizeJsonString(apiResponse)
+                        val json = org.json.JSONObject(sanitized)
+                        parsedStudyText = json.optString("studyText", content)
+                        parsedSummary = json.optString("summary", "")
+                    } catch (e: Exception) {
+                        Log.e("Upload", "Failed to parse json response: $apiResponse", e)
+                        parsedSummary = "تم تحليل المستند بواسطة الذكاء الاصطناعي بنجاح:\n$apiResponse"
+                    }
+                } else {
+                    // Fallback or text-based if API failed
+                    val summarizePrompt = "قم بعمل تلخيص بليغ ومفصل ومنسق ومقسم إلى فقرات للمستند التعليمي المعنون بـ: \"$title\":\n\n$content"
+                    val summaryResult = GeminiService.generateContent(
+                        prompt = summarizePrompt,
+                        systemInstruction = "أنت معاون أكاديمي وتلخيصي فائق الذكاء، تلخص المستندات الدراسية بدقة وإتقان."
+                    )
+                    parsedSummary = if (summaryResult == "API_KEY_MISSING") {
+                        "ملخص محلي سريع ومبسط:\nتم تلقي المستند بنجاح! للتلخيص الفائق والشامل عبر الذكاء الاصطناعي التوليدي، يرجى تهيئة مفتاح Gemini API Secure Key في خيارات المعاملات لـ AI Studio.\nموجز النص المرفوع:\n${content.take(150)}..."
+                    } else {
+                        summaryResult
+                    }
+                }
             } else {
-                summaryResult
+                // Fallback / manual input mode
+                val summarizePrompt = "قم بعمل تلخيص بليغ ومفصل ومنسق ومقسم إلى فقرات للمستند التعليمي المعنون بـ: \"$title\":\n\n$content"
+                val summaryResult = GeminiService.generateContent(
+                    prompt = summarizePrompt,
+                    systemInstruction = "أنت معاون أكاديمي وتلخيصي فائق الذكاء، تلخص المستندات الدراسية بدقة وإتقان."
+                )
+                parsedSummary = if (summaryResult == "API_KEY_MISSING") {
+                    "ملخص محلي سريع ومبسط:\nتم تلقي المستند بنجاح! للتلخيص الفائق والشامل عبر الذكاء الاصطناعي التوليدي، يرجى تهيئة مفتاح Gemini API Secure Key في خيارات المعاملات لـ AI Studio.\nموجز النص المرفوع:\n${content.take(150)}..."
+                } else {
+                    summaryResult
+                }
+            }
+
+            // Ensure sourceText is not empty!
+            if (parsedStudyText.isEmpty()) {
+                parsedStudyText = parsedSummary.ifEmpty { "شرح وملخص مادة الدرس: $title" }
             }
 
             val materialEntity = StudyMaterialEntity(
                 id = UUID.randomUUID().toString(),
                 title = title,
-                sourceText = content,
-                summary = cleanSummary,
+                sourceText = parsedStudyText,
+                summary = parsedSummary.ifEmpty { "ملخص تفصيلي لـ $title" },
                 uploadType = type
             )
 
@@ -467,6 +525,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Te
             viewModelScope.launch(Dispatchers.Main) {
                 inputMaterialTitle.value = ""
                 inputMaterialText.value = ""
+                uploadedFileBase64.value = null
+                uploadedFileMimeType.value = null
                 isUploadLoading.value = false
                 onComplete()
             }

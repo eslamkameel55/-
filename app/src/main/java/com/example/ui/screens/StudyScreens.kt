@@ -1,8 +1,12 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.example.R
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.*
@@ -16,6 +20,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.horizontalScroll
+import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -33,8 +42,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.StudyMaterialEntity
 import com.example.data.StudyPlanEntity
 import com.example.ui.*
-import com.example.ui.theme.StudyBluePrimary
-import com.example.ui.theme.StudyOrangeAccent
+import com.example.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -48,43 +56,18 @@ fun NeumorphicCard3D(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    Box(
-        modifier = modifier.padding(bottom = depthY, end = depthX)
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = color
+        ),
+        shape = RoundedCornerShape(20.dp),
+        border = BorderStroke(1.dp, borderColor.copy(alpha = 0.25f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        // Soft outer Dark Shadow on bottom-right (Tactile deep recess)
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .offset(y = depthY, x = depthX)
-                .clip(RoundedCornerShape(22.dp))
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            Color.Black.copy(alpha = 0.12f),
-                            Color.Black.copy(alpha = 0.06f)
-                        )
-                    )
-                )
-        )
-        // Soft outer Light Highlight on top-left (Opposing bevel)
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .offset(y = -depthY / 2, x = -depthX / 2)
-                .clip(RoundedCornerShape(22.dp))
-                .background(Color.White.copy(alpha = 0.72f))
-        )
-        // Main Content Board (Tactile Front Layer)
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(2.dp, borderColor, RoundedCornerShape(22.dp)),
-            colors = CardDefaults.cardColors(containerColor = color),
-            shape = RoundedCornerShape(22.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-        ) {
-            content()
-        }
+        content()
     }
 }
 
@@ -96,62 +79,23 @@ fun NeumorphicButton3D(
     shape: RoundedCornerShape = RoundedCornerShape(18.dp),
     content: @Composable RowScope.() -> Unit
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-
-    val animatedDepthY by animateDpAsState(targetValue = if (isPressed) 2.dp else 6.dp, label = "depthY")
-    val animatedDepthX by animateDpAsState(targetValue = if (isPressed) 1.dp else 3.dp, label = "depthX")
-
-    Box(
+    Button(
+        onClick = onClick,
         modifier = modifier
-            .padding(bottom = 6.dp, end = 3.dp)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null, // Disable ripple for custom tactile movement
-                onClick = onClick
-            )
+            .fillMaxWidth()
+            .height(50.dp),
+        shape = shape,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = color
+        ),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        // Deep Soft Shadow
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .offset(y = animatedDepthY, x = animatedDepthX)
-                .clip(shape)
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            Color.Black.copy(alpha = 0.18f),
-                            color.copy(alpha = 0.45f)
-                        )
-                    )
-                )
-        )
-        // Glowing Soft Highlight on top-left
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .offset(y = -animatedDepthY / 2, x = -animatedDepthX / 2)
-                .clip(shape)
-                .background(Color.White.copy(alpha = 0.75f))
-        )
-        // Top Surface Face
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(2.dp, Color.White.copy(alpha = 0.15f), shape),
-            colors = CardDefaults.cardColors(containerColor = color),
-            shape = shape,
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
         ) {
-            Row(
-                modifier = Modifier
-                    .padding(horizontal = 14.dp, vertical = 11.dp)
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                content()
-            }
+            content()
         }
     }
 }
@@ -164,7 +108,7 @@ fun ThreeDContainer(
 ) {
     NeumorphicCard3D(
         color = MaterialTheme.colorScheme.surface,
-        borderColor = color.copy(alpha = 0.35f),
+        borderColor = color,
         modifier = modifier,
         content = content
     )
@@ -179,120 +123,151 @@ fun PortalWidget3D(
     badgeText: String? = null,
     onClick: () -> Unit
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-
-    val depthY by animateDpAsState(targetValue = if (isPressed) 2.dp else 6.dp, label = "depthY")
-    val depthX by animateDpAsState(targetValue = if (isPressed) 1.dp else 3.dp, label = "depthX")
-
-    Box(
+    Card(
         modifier = Modifier
             .padding(6.dp)
-            .height(130.dp)
+            .height(115.dp)
             .fillMaxWidth()
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.25f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        // Shadow Layer (Depth)
-        Box(
+        Column(
             modifier = Modifier
-                .matchParentSize()
-                .offset(y = depthY, x = depthX)
-                .clip(RoundedCornerShape(22.dp))
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            Color.Black.copy(alpha = 0.12f),
-                            color.copy(alpha = 0.35f)
-                        )
-                    )
-                )
-        )
-
-        // Soft Highlight Bevel
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .offset(y = -depthY / 2, x = -depthX / 2)
-                .clip(RoundedCornerShape(22.dp))
-                .background(Color.White.copy(alpha = 0.72f))
-        )
-
-        // Main Front Card Face
-        Card(
-            modifier = Modifier
-                .fillMaxSize()
-                .border(2.dp, color.copy(alpha = 0.25f), RoundedCornerShape(22.dp)),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            shape = RoundedCornerShape(22.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                .padding(14.dp)
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.End
         ) {
-            Column(
-                modifier = Modifier
-                    .padding(12.dp)
-                    .fillMaxSize(),
-                verticalArrangement = Arrangement.SpaceBetween,
-                horizontalAlignment = Alignment.End
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
-                ) {
-                    if (badgeText != null) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(StudyOrangeAccent.copy(alpha = 0.15f))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(badgeText, fontSize = 8.sp, color = StudyOrangeAccent, fontWeight = FontWeight.Bold)
-                        }
-                    } else {
-                        Spacer(modifier = Modifier.width(1.dp))
-                    }
-
+                if (badgeText != null) {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(color.copy(alpha = 0.12f)),
-                        contentAlignment = Alignment.Center
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(color.copy(alpha = 0.12f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = color,
-                            modifier = Modifier.size(20.dp)
+                        Text(
+                            text = badgeText,
+                            fontSize = 8.sp,
+                            color = color,
+                            fontWeight = FontWeight.Bold
                         )
                     }
+                } else {
+                    Spacer(modifier = Modifier.width(1.dp))
                 }
 
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = title,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.Right,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = subtitle,
-                        fontSize = 9.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                        textAlign = TextAlign.Right,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(color.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = color,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
+            }
+
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = title,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Right,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Right,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ActionGridCard(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(130.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.25f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(14.dp)
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.End
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(color.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = title,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Right,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(3.dp))
+                Text(
+                    text = subtitle,
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Right,
+                    lineHeight = 13.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }
@@ -314,6 +289,57 @@ fun StudentHomeScreen(viewModel: AppViewModel) {
     val totalQuizCount = quizzes.size
 
     val dateStr = SimpleDateFormat("EEEE, d MMMM yyyy", Locale("ar")).format(Date())
+    val context = LocalContext.current
+
+    // Launcher for real PDF and image file picking
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                // Query system openable database for physical name
+                var displayName = "مستند_مرفوع"
+                context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                        if (nameIndex != -1) {
+                            displayName = cursor.getString(nameIndex)
+                        }
+                    }
+                }
+                
+                // Clean the file name extension
+                val cleanTitle = displayName.substringBeforeLast(".")
+                viewModel.inputMaterialTitle.value = cleanTitle
+                
+                // Set high quality simulated text content depending on the type
+                val isImage = displayName.lowercase().run { endsWith(".png") || endsWith(".jpg") || endsWith(".jpeg") || endsWith(".webp") }
+                val mimeType = context.contentResolver.getType(uri) ?: (if (isImage) "image/jpeg" else "application/pdf")
+                viewModel.selectedFileType.value = if (isImage) "IMAGE" else "PDF"
+
+                // Read actual physical bytes of image/PDF and fill View Model Base64 state
+                context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    val bytes = inputStream.readBytes()
+                    val base64Str = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                    viewModel.uploadedFileBase64.value = base64Str
+                    viewModel.uploadedFileMimeType.value = mimeType
+                }
+                
+                viewModel.inputMaterialText.value = if (isImage) {
+                    "🎨 [تم تحميل صورة مستندك بنجاح: $displayName. اضغط على الزر أدناه ليقوم جيميناي بمسح الصورة ضوئياً واستنتاج الشرح والامتحان!]"
+                } else {
+                    "📂 [تم تحميل ملف مستندك بنجاح: $displayName. اضغط على الزر أدناه ليقوم جيميناي بقراءة وتلخيص محتويات الـ PDF وصياغة الامتحان!]"
+                }
+            } catch (e: Exception) {
+                // Fallback
+                viewModel.inputMaterialTitle.value = "ملف تعليمي مرفوع"
+                viewModel.inputMaterialText.value = "محتوى المستند للتوضيح والدراسة."
+            }
+        }
+    }
+
+    // Helper target option
+    var selectedTargetGoal by remember { mutableStateOf("SUMMARY_EXAM") } // SUMMARY_EXAM, FLASHCARDS, MINDMAP
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -323,389 +349,643 @@ fun StudentHomeScreen(viewModel: AppViewModel) {
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.End
         ) {
-        // Welcoming
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(StudyOrangeAccent.copy(alpha = 0.15f))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = "الأستوديو الذكي ثلاثي الأبعاد 🎨",
-                    color = StudyOrangeAccent,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            Text(
-                text = dateStr,
-                fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                textAlign = TextAlign.Right
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(6.dp))
-
-        Text(
-            text = "أهلاً بك يا ${user.username} 👋",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Black,
-            color = MaterialTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Right,
-            modifier = Modifier.fillMaxWidth()
-        )
-        Text(
-            text = "المستوى الدراسي: ${user.gradeLevel}",
-            fontSize = 13.sp,
-            color = StudyBluePrimary,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Right,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Large 3D Banner card
-        ThreeDContainer(color = StudyBluePrimary) {
-            Box(
-                modifier = Modifier
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(StudyBluePrimary, Color(0xFF1E88E5), Color(0xFF1565C0))
-                        )
-                    )
-                    .fillMaxWidth()
-                    .padding(20.dp)
-            ) {
-                Column(horizontalAlignment = Alignment.End, modifier = Modifier.fillMaxWidth()) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White.copy(alpha = 0.2f))
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Text("مُتاح بالكامل ⚡", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold)
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "منصة المذاكرة التفاعلية ثلاثية الأبعاد 🎓",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "هنا جميع ميزات ذكاء جيميناي وسكريبتات الفيديو المسموعة في لوحة تحكم واحدة! اختر ميزة بالأسفل لبدء التعلّم الآن.",
-                        color = Color.White.copy(alpha = 0.9f),
-                        fontSize = 11.sp,
-                        lineHeight = 16.sp,
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Study Tip Card in 3D
-        ThreeDContainer(color = StudyOrangeAccent) {
+            // Header bar
             Row(
-                modifier = Modifier
-                    .padding(14.dp)
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1f)) {
+                // Online tag
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(StudyBluePrimary.copy(alpha = 0.15f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
                     Text(
-                        text = "نصيحة المذاكرة اليومية الذكية:",
-                        color = StudyOrangeAccent,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
-                        textAlign = TextAlign.Right
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "تقنية التكرار المتباعد تزيد التركيز وتحفظ المعلومة في الذاكرة طويلة المدى. اضغط على بطاقات الفلاش (Flashcards) لتجربتها بنفسك!",
-                        fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                        textAlign = TextAlign.Right,
-                        lineHeight = 15.sp
+                        text = "المعلم الذكي نشط ⚡",
+                        color = StudyBluePrimary,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = null,
-                    tint = StudyOrangeAccent,
-                    modifier = Modifier.size(22.dp)
+                Text(
+                    text = dateStr,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                    textAlign = TextAlign.Right
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.height(22.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-        // Progress Badges in 3D
-        SectionHeader(title = "معدلات التفاعل والإنجاز ثلاثي الأبعاد 📊")
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Plan progress with 3D shadow container
-            val planProgress3DColor = StudyBluePrimary
-            Box(
+            // App Launcher Icon Showcase & Brand Title
+            Card(
                 modifier = Modifier
-                    .weight(1.2f)
-                    .padding(horizontal = 4.dp)
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                shape = RoundedCornerShape(22.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, StudyOrangeAccent.copy(alpha = 0.25f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
-                ThreeDContainer(color = planProgress3DColor) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Column(
-                        modifier = Modifier.padding(12.dp),
-                        horizontalAlignment = Alignment.End
+                        horizontalAlignment = Alignment.End,
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Text("المهام الأسبوعية", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                        Text("النسبة: ${(plansProgress * 100).toInt()}%", fontSize = 10.sp, color = Color.Gray)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(54.dp).align(Alignment.CenterHorizontally)) {
+                        Text(
+                            text = "استوديو المذاكرة الذكي 🎓✨",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 15.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Right
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "أقوى أدوات التلخيص التفاعلي وصناعة الفيديوهات بالذكاء الاصطناعي",
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                            textAlign = TextAlign.Right,
+                            lineHeight = 13.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(14.dp))
+                    // Gorgeous system launcher icon preview
+                    Box(
+                        modifier = Modifier
+                            .size(54.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .border(1.5.dp, StudyOrangeAccent, RoundedCornerShape(16.dp))
+                            .padding(4.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.smart_study_icon_1781186424076),
+                            contentDescription = "أيقونة التطبيق الرسمية",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(12.dp))
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Professional Profile Header Display
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "أهلاً بك يا ${user.username} 👋",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Right
+                        )
+                        Text(
+                            text = "الصف الدراسي الحالي: ${user.gradeLevel}",
+                            fontSize = 12.sp,
+                            color = StudyBluePrimary,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Right
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    // Styled Avatar symbol
+                    Box(
+                        modifier = Modifier
+                            .size(54.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(StudyBluePrimary, StudyOrangeAccent)
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = user.username.take(1).uppercase(),
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ==========================================
+            // MANDATORY DIRECT PDF & IMAGE UPLOAD & INTERACT AREA
+            // ==========================================
+            Text(
+                text = "بوابة الرفع والتحليل الذكي الفوري 📑✨",
+                fontWeight = FontWeight.Black,
+                fontSize = 15.sp,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 6.dp),
+                textAlign = TextAlign.Right
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(2.dp, StudyBluePrimary.copy(alpha = 0.7f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.End
+                ) {
+                    Text(
+                        text = "ارفع كتاباً، ملف PDF أو صورة مستند مأخوذة بكاميرا هاتفك لتلخيصها فورًا وصناعة اختبار تفاعلي في ثوانٍ معدودة!",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        textAlign = TextAlign.Right,
+                        lineHeight = 16.sp,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Selector row for file type
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        listOf(
+                            "PDF" to "📄 ملف PDF",
+                            "IMAGE" to "🖼️ صورة مستند",
+                            "TEXT" to "✍️ نص مباشر"
+                        ).forEach { (typeKey, label) ->
+                            val isSelected = viewModel.selectedFileType.value == typeKey
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (isSelected) StudyBluePrimary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                    .clickable { viewModel.selectedFileType.value = typeKey }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Elegant drag-and-drop visual upload container card
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(112.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(StudyBluePrimary.copy(alpha = 0.05f))
+                            .border(
+                                width = 1.5.dp,
+                                color = StudyBluePrimary.copy(alpha = 0.35f),
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                            .clickable {
+                                val currentType = viewModel.selectedFileType.value
+                                if (currentType == "PDF") {
+                                    filePickerLauncher.launch("application/pdf")
+                                } else if (currentType == "IMAGE") {
+                                    filePickerLauncher.launch("image/*")
+                                } else {
+                                    // Default/Fallback
+                                    viewModel.selectedFileType.value = "PDF"
+                                    filePickerLauncher.launch("application/pdf")
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AddCircle, 
+                                contentDescription = null,
+                                tint = StudyBluePrimary,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = if (viewModel.selectedFileType.value == "PDF") {
+                                    "اضغط هنا لرفع واستيراد ملف الـ PDF 📂"
+                                } else if (viewModel.selectedFileType.value == "IMAGE") {
+                                    "اضغط هنا لتصوير أو رفع صورة المستند 📸"
+                                } else {
+                                    "اضغط هنا لرفع واستيراد كتاب أو مستند 📑"
+                                },
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = StudyBluePrimary,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "يدعم الكتب المدرسية والملخصات لتوليد شرح وامتحانات تفاعلية فورية مخصصة لك",
+                                fontSize = 9.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Prompt Presets section for quick testing
+                    Text(
+                        text = "💡 أمثلة سريعة جاهزة للشحن الفوري بنقرة واحدة:",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = StudyOrangeAccent,
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        listOf(
+                            Triple(
+                                "🧬 تركيب الخلية ووظائفها الفائقة (أحياء)",
+                                "الخلية هي الوحدة البنائية الأساسية لجميع الكائنات الحية. تتكون الخلية من نواة مركزية تنظم الانقسامات الخلوية وتحافظ على الحمض النووي DNA، ويحيط بها سائل السيتوبلازم وتسبح فيه مكونات هامة مثل الميتوكوندريا المسؤولة عن إنتاج جزيئات الطاقة الكيميائية ATP، وجهاز جولجي لإفراز المواد والبروتينات، وغشاء بلاسمي خارجي يحميها ويملك نفاذية اختيارية دقيقة لتنظيم حركة المياه والأملاح.",
+                                "🧬 الخلية (أحياء)"
+                            ),
+                            Triple(
+                                "🧪 الروابط التساهمية وتكافؤ الإلكترونات (كيمياء)",
+                                "تنشأ الروابط التساهمية بين ذرات العناصر اللافلزية عندما تتشارك الإلكترونات في غلافها الخارجي بدلاً من نقلها بالكامل، وذلك لكي تصل كل ذرة إلى الاستقرار الثماني المكتمل. جزيء الماء H2O هو أشهر الروابط التساهمية الأحادية حيث تشارك ذرة الأكسجين بالإلكترونات مع ذرتي هيدروجين. من أهم سماتها: درجات غليان منخفضة مقارنة بالأيونية، وهي عازلة تماماً للكهرباء.",
+                                "🧪 الذرة (كيمياء)"
+                            ),
+                            Triple(
+                                "⚡ قوانين نيوتن وميكانيكا الاحتكاك (فيزياء)",
+                                "تنص قوانين نيوتن للحركة على ثلاثة مبادئ ثورية: أولا قانون القصور الذاتي حيث يبقى الجسم الساكن ساكناً والمتحرك متحركاً ما لم تؤثر عليه قوة خارجية. القانون الثاني يثبت رياضياً أن القوة تساوي الكتلة ضرب التسارع (F = m * a). القانون الثالث يقر بالمعادلة الطبيعية لكل فعل رد فعل مساوٍ له في المقدار ومعاكس له في الاتجاه، وتعمل قوى الاحتكاك دائماً كقوة مقاومة للحركة.",
+                                "⚡ القوة (فيزياء)"
+                            )
+                        ).forEach { (pTitle, pText, label) ->
+                            Box(
+                                modifier = Modifier
+                                    .padding(horizontal = 3.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .clickable {
+                                        viewModel.inputMaterialTitle.value = pTitle
+                                        viewModel.inputMaterialText.value = pText
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                            ) {
+                                Text(text = label, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = StudyOrangeAccent)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Text Input Title
+                    StudyTextInput(
+                        value = viewModel.inputMaterialTitle.value,
+                        onValueChange = { viewModel.inputMaterialTitle.value = it },
+                        label = "عنوان المستند أو اسم الدرس",
+                        placeholder = "عنوان الدرس الدراسي للعمل عليه..."
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Text Input Main Content
+                    OutlinedTextField(
+                        value = viewModel.inputMaterialText.value,
+                        onValueChange = { viewModel.inputMaterialText.value = it },
+                        label = { Text("محتوى الدرس المستخرج", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right) },
+                        placeholder = { Text("اكتب هنا أو الصق نصوص شرح الدرس أو الكتاب لتوليد ملخص أو امتحان تلقائي...", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        textStyle = LocalTextStyle.current.copy(fontSize = 11.sp, textAlign = TextAlign.Right),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = StudyBluePrimary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Target Outcome Customizer
+                    Text(
+                        text = "اختر الخدمة المستهدفة بالذكاء الاصطناعي 🎯:",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        listOf(
+                            "SUMMARY_EXAM" to "📄 تلخيص + امتحان",
+                            "FLASHCARDS" to "🧠 بطاقات استذكار",
+                            "MINDMAP" to "🗺️ خريطة ذهنية"
+                        ).forEach { (goalKey, label) ->
+                            val isSelected = selectedTargetGoal == goalKey
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (isSelected) StudyOrangeAccent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                    .clickable { selectedTargetGoal = goalKey }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    if (viewModel.isUploadLoading.value || viewModel.isQuizGenerating.value || viewModel.isGeneratingFlashcards.value) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(color = StudyOrangeAccent, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("جاري معالجة المستند وصياغة الذكاء الاصطناعي...", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = StudyOrangeAccent)
+                        }
+                    } else {
+                        Button(
+                            onClick = {
+                                if (viewModel.inputMaterialTitle.value.trim().isEmpty() || viewModel.inputMaterialText.value.trim().isEmpty()) {
+                                    // Autoload the first preset to safeguard against empty triggers
+                                    viewModel.inputMaterialTitle.value = "🧬 تركيب الخلية ووظائفها الفائقة (أحياء)"
+                                    viewModel.inputMaterialText.value = "الخلية هي الوحدة البنائية الأساسية لجميع الكائنات الحية. تتكون الخلية من نواة مركزية تنظم الانقسامات الخلوية وتحافظ على الحمض النووي DNA، ويحيط بها سائل السيتوبلازم وتسبح فيه مكونات هامة مثل الميتوكوندريا المسؤولة عن إنتاج جزيئات الطاقة ATP، وغشاء بلاسمي خارجي يحميها ويملك نفاذية اختيارية."
+                                }
+                                
+                                viewModel.handleUploadMaterial {
+                                    // Callback once material is saved!
+                                    val mat = viewModel.activeMaterial.value
+                                    if (mat != null) {
+                                        when (selectedTargetGoal) {
+                                            "SUMMARY_EXAM" -> {
+                                                // Pre-generate quiz & open exams
+                                                viewModel.fetchOrGenerateQuizForMaterial(mat) {
+                                                    viewModel.navigateTo(Screen.Exams)
+                                                }
+                                            }
+                                            "FLASHCARDS" -> {
+                                                // Trigger flashcards and open flashcards
+                                                viewModel.triggerGenerateFlashcards(mat)
+                                                viewModel.navigateTo(Screen.Flashcards)
+                                            }
+                                            "MINDMAP" -> {
+                                                // Open mindmaps
+                                                viewModel.fetchOrGenerateMindMap(mat) {}
+                                                viewModel.navigateTo(Screen.MindMaps)
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = StudyBluePrimary)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                                Icon(Icons.Default.Star, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("تحليل وتوليد الأدوات الذكية ⚡", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Study organizers & Quick statistics in a beautiful balanced 3-column Grid
+            SectionHeader(title = "معدلات التفاعل والإنجاز 📊")
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Stat 1: Study Progress
+                Card(
+                    modifier = Modifier.weight(1f).height(115.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, StudyBluePrimary.copy(alpha = 0.15f)),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(10.dp).fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text("المهام والجدول", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(42.dp)) {
                             CircularProgressIndicator(
                                 progress = { 1.0f },
                                 modifier = Modifier.fillMaxSize(),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
-                                strokeWidth = 5.dp
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                                strokeWidth = 3.5.dp
                             )
                             CircularProgressIndicator(
                                 progress = { plansProgress },
                                 modifier = Modifier.fillMaxSize(),
                                 color = StudyBluePrimary,
-                                strokeWidth = 5.dp
+                                strokeWidth = 3.5.dp
                             )
-                            Text("${(plansProgress * 100).toInt()}%", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = StudyBluePrimary)
+                            Text("${(plansProgress * 100).toInt()}%", fontSize = 9.sp, fontWeight = FontWeight.Black, color = StudyBluePrimary)
                         }
                     }
                 }
-            }
 
-            // Quick Stats with 3D shadow containers
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                ThreeDContainer(color = StudyOrangeAccent) {
+                // Stat 2: Active Materials
+                Card(
+                    modifier = Modifier.weight(1f).height(115.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, StudyOrangeAccent.copy(alpha = 0.15f)),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
                     Column(
-                        modifier = Modifier.padding(10.dp).fillMaxWidth(),
-                        horizontalAlignment = Alignment.End
+                        modifier = Modifier.padding(10.dp).fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Text("ملخصات نشطة", fontSize = 10.sp, color = Color.Gray)
-                        Text("$totalMaterialCount مستندات", fontSize = 13.sp, fontWeight = FontWeight.Black, color = StudyOrangeAccent)
-                    }
-                }
-                ThreeDContainer(color = StudyBluePrimary) {
-                    Column(
-                        modifier = Modifier.padding(10.dp).fillMaxWidth(),
-                        horizontalAlignment = Alignment.End
-                    ) {
-                        Text("الاختبارات الذاتية", fontSize = 10.sp, color = Color.Gray)
-                        Text("$totalQuizCount مُنقضية", fontSize = 13.sp, fontWeight = FontWeight.Black, color = StudyBluePrimary)
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Announcements Header
-        if (announcements.isNotEmpty()) {
-            SectionHeader(title = "تنبيهات وتلوينات المدرسين النشطة 🔔")
-            announcements.take(2).forEach { announce ->
-                ThreeDContainer(color = StudyBluePrimary) {
-                    Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.End) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(StudyOrangeAccent.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text(text = "المادة: ${announce.subject}", fontSize = 10.sp, color = StudyBluePrimary, fontWeight = FontWeight.Bold)
-                            Text(text = announce.title, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Icon(Icons.Default.Info, contentDescription = null, tint = StudyOrangeAccent, modifier = Modifier.size(16.dp))
                         }
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(text = announce.content, fontSize = 11.sp, textAlign = TextAlign.Right, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f))
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(text = "المرسل: ${announce.senderName}", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                        Text("ملخصات نشطة", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
+                        Text("$totalMaterialCount مستندات", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = StudyOrangeAccent)
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-            Spacer(modifier = Modifier.height(10.dp))
-        }
 
-        // REDESIGNED 12 FEATURES IN A SPECTACULAR 3D GRID
-        SectionHeader(title = "لوحة جميع الميزات والأقسام 🛠️🎨")
+                // Stat 3: Solved Quizzes
+                Card(
+                    modifier = Modifier.weight(1f).height(115.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, StudySky.copy(alpha = 0.15f)),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(10.dp).fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(StudySky.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Check, contentDescription = null, tint = StudySky, modifier = Modifier.size(16.dp))
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("الاختبارات", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
+                        Text("$totalQuizCount مُنقضية", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = StudySky)
+                    }
+                }
+            }
 
-        // Pair 1: Video Generator & PDF Smart Reader
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Box(modifier = Modifier.weight(1f)) {
-                PortalWidget3D(
-                    title = "ملخصاتي ومستنداتي",
-                    subtitle = "تحميل وتلخيص ملفات PDF",
-                    icon = Icons.Default.Info,
-                    color = StudyBluePrimary,
-                    badgeText = "ذكاء جيميناي ⚡"
-                ) {
-                    viewModel.navigateTo(Screen.SavedFiles)
-                }
-            }
-            Box(modifier = Modifier.weight(1f)) {
-                PortalWidget3D(
-                    title = "فيديو شرح ذكي",
-                    subtitle = "تحويل صوره أو pdf لشرح مرئي",
-                    icon = Icons.Default.PlayArrow,
-                    color = StudyOrangeAccent,
-                    badgeText = "مميز وحصري 🎥"
-                ) {
-                    viewModel.navigateTo(Screen.PdfToVideo)
-                }
-            }
-        }
+            Spacer(modifier = Modifier.height(20.dp))
 
-        // Pair 2: AI Companion & Self Exams
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Box(modifier = Modifier.weight(1f)) {
-                PortalWidget3D(
-                    title = "امتحانات وتحديات",
-                    subtitle = "اختبارات تفاعلية ونتائج فورية",
-                    icon = Icons.Default.Create,
-                    color = StudyOrangeAccent,
-                    badgeText = "مستمر 🥇"
-                ) {
-                    viewModel.navigateTo(Screen.Exams)
-                }
-            }
-            Box(modifier = Modifier.weight(1f)) {
-                PortalWidget3D(
-                    title = "المساعد الدراسي",
-                    subtitle = "مناقشة وتلخيص مع جيميناي",
-                    icon = Icons.Default.Send,
-                    color = StudyBluePrimary,
-                    badgeText = "شات ذكي 💬"
-                ) {
-                    viewModel.navigateTo(Screen.AiAssistant)
-                }
-            }
-        }
+            // ==========================================
+            // SLEEK SECONDARY ADAPTIVE ACCESS GRID
+            // ==========================================
+            SectionHeader(title = "الأقسام والأدوات الذكية 🛠️✨")
 
-        // Pair 3: Study Schedule Planner & Memory Flashcards
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Box(modifier = Modifier.weight(1f)) {
-                PortalWidget3D(
-                    title = "بطاقات الاستذكار",
-                    subtitle = "فلاش كارد الحفظ السريع",
-                    icon = Icons.Default.Refresh,
-                    color = StudyBluePrimary,
-                    badgeText = "تقوية الذاكرة 🧠"
-                ) {
-                    viewModel.navigateTo(Screen.Flashcards)
+            // Grid of 6 beautifully crafted quick action cards (2x3 Grid System with consistent tile ratios)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // Row 1
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        ActionGridCard(
+                            title = "المعلم والأستاذ المساعد 💬",
+                            subtitle = "اسأل، لخص وناقش المواد مع الذكاء الاصطناعي التوليدي",
+                            icon = Icons.Default.Send,
+                            color = StudyBluePrimary,
+                            onClick = { viewModel.navigateTo(Screen.AiAssistant) }
+                        )
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        ActionGridCard(
+                            title = "شرح مرئي بالفيديو 🎥",
+                            subtitle = "عرض السيناريو وجداول الرسوم التلخيصية للفيديو",
+                            icon = Icons.Default.PlayArrow,
+                            color = StudyOrangeAccent,
+                            onClick = { viewModel.navigateTo(Screen.PdfToVideo) }
+                        )
+                    }
                 }
-            }
-            Box(modifier = Modifier.weight(1f)) {
-                PortalWidget3D(
-                    title = "الخطة الدراسية",
-                    subtitle = "مهام وجداول مذاكرة أسبوعية",
-                    icon = Icons.Default.DateRange,
-                    color = StudyOrangeAccent,
-                    badgeText = "تنظيم 📅"
-                ) {
-                    viewModel.navigateTo(Screen.StudyPlan)
-                }
-            }
-        }
 
-        // Pair 4: Intelligent Mind Maps & Saved Video Archive
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Box(modifier = Modifier.weight(1f)) {
-                PortalWidget3D(
-                    title = "الفيديوهات المنتجة",
-                    subtitle = "تصفح الشروحات المصممة مسبقاً",
-                    icon = Icons.Default.PlayArrow,
-                    color = StudyOrangeAccent,
-                    badgeText = "أفلام تعليمية 🎞️"
-                ) {
-                    viewModel.navigateTo(Screen.SavedVideos)
+                // Row 2
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        ActionGridCard(
+                            title = "بطاقات التلقين السريع 🧠",
+                            subtitle = "احفظ جزيئات دروسك بالتكرار المتباعد الذكي",
+                            icon = Icons.Default.Refresh,
+                            color = StudyEmerald,
+                            onClick = { viewModel.navigateTo(Screen.Flashcards) }
+                        )
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        ActionGridCard(
+                            title = "الخرائط الذهنية الذكية 🗺️",
+                            subtitle = "ربط المخططات والمفاهيم بشكل مرئي رائع",
+                            icon = Icons.Default.Share,
+                            color = StudySky,
+                            onClick = { viewModel.navigateTo(Screen.MindMaps) }
+                        )
+                    }
                 }
-            }
-            Box(modifier = Modifier.weight(1f)) {
-                PortalWidget3D(
-                    title = "الخرائط الذهنية",
-                    subtitle = "رسم مخططات مفاهيمية ذكية",
-                    icon = Icons.Default.Share,
-                    color = StudyBluePrimary,
-                    badgeText = "تمثيل بصري 🗺️"
-                ) {
-                    viewModel.navigateTo(Screen.MindMaps)
-                }
-            }
-        }
 
-        // Pair 5: Subject Curriculum & Saved PDF Documents
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Box(modifier = Modifier.weight(1f)) {
-                PortalWidget3D(
-                    title = "مستندات وملفات PDF",
-                    subtitle = "تلخيص الكتب والكتب الدراسية المرفوعة",
-                    icon = Icons.Default.Build,
-                    color = StudyBluePrimary,
-                    badgeText = "ملفاتي 📂"
-                ) {
-                    viewModel.navigateTo(Screen.SavedFiles)
+                // Row 3
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        ActionGridCard(
+                            title = "الخطة والمنظم 📅",
+                            subtitle = "جدول مذاكرتك المدرسية اليومية والأسبوعية",
+                            icon = Icons.Default.DateRange,
+                            color = StudyGold,
+                            onClick = { viewModel.navigateTo(Screen.StudyPlan) }
+                        )
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        ActionGridCard(
+                            title = "المستندات المحملة 📁",
+                            subtitle = "تصفح الكتب ومستندات الـ PDF المرفوعة",
+                            icon = Icons.Default.Build,
+                            color = StudyOrangeLight,
+                            onClick = { viewModel.navigateTo(Screen.SavedFiles) }
+                        )
+                    }
                 }
             }
-            Box(modifier = Modifier.weight(1f)) {
-                PortalWidget3D(
-                    title = "مناهج ومواد القسم",
-                    subtitle = "الكتب الدراسية والفصول المحاكاة",
-                    icon = Icons.Default.AccountBox,
-                    color = StudyOrangeAccent,
-                    badgeText = "الدروس 🏛️"
-                ) {
-                    viewModel.navigateTo(Screen.Subjects)
-                }
-            }
-        }
-
-        // Pair 6: User Professional Profile & App Configuration
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Box(modifier = Modifier.weight(1f)) {
-                PortalWidget3D(
-                    title = "إعدادات المنصة",
-                    subtitle = "خيارات قارئ الصوت والتوجيه",
-                    icon = Icons.Default.Settings,
-                    color = StudyOrangeAccent
-                ) {
-                    viewModel.navigateTo(Screen.Settings)
-                }
-            }
-            Box(modifier = Modifier.weight(1f)) {
-                PortalWidget3D(
-                    title = "الملف الشخصي",
-                    subtitle = "سجل البيانات والتحصيل الأكاديمي",
-                    icon = Icons.Default.Person,
-                    color = StudyBluePrimary,
-                    badgeText = "حسابي 👤"
-                ) {
-                    viewModel.navigateTo(Screen.Profile)
-                }
-            }
-        }
 
         // Navigation into Teacher/Admin dashboards
         if (user.accountType == "TEACHER" || user.accountType == "ADMIN") {
@@ -743,87 +1023,7 @@ fun StudentHomeScreen(viewModel: AppViewModel) {
                 }
             }
         }
-        Spacer(modifier = Modifier.height(120.dp))
-    }
-
-    // Dynamic 3D Neumorphic Floating Action Dock
-    Box(
-        modifier = Modifier
-            .align(Alignment.BottomCenter)
-            .fillMaxWidth()
-            .padding(bottom = 12.dp, start = 16.dp, end = 16.dp)
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(2.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(26.dp)),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-            ),
-            shape = RoundedCornerShape(26.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // PDF to Video Screen 3D FAB
-                Box(modifier = Modifier.weight(1f)) {
-                    NeumorphicButton3D(
-                        onClick = { viewModel.navigateTo(Screen.PdfToVideo) },
-                        color = StudyOrangeAccent,
-                        shape = RoundedCornerShape(18.dp)
-                    ) {
-                        Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.White)
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            "شرح مرئي 🎥",
-                            color = Color.White,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 11.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-
-                // AI Summary Screen 3D FAB with smart fallback/selection
-                Box(modifier = Modifier.weight(1f)) {
-                    NeumorphicButton3D(
-                        onClick = {
-                            val activeMat = viewModel.activeMaterial.value
-                            if (activeMat != null) {
-                                viewModel.navigateTo(Screen.PdfSummary)
-                            } else {
-                                val firstMat = materials.firstOrNull()
-                                if (firstMat != null) {
-                                    viewModel.selectActiveMaterial(firstMat)
-                                    viewModel.navigateTo(Screen.PdfSummary)
-                                } else {
-                                    viewModel.navigateTo(Screen.SavedFiles)
-                                }
-                            }
-                        },
-                        color = StudyBluePrimary,
-                        shape = RoundedCornerShape(18.dp)
-                    ) {
-                        Icon(Icons.Default.Info, contentDescription = null, tint = Color.White)
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            "تلخيص ذكي ⚡",
-                            color = Color.White,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 11.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-            }
-        }
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 }
@@ -831,12 +1031,12 @@ fun StudentHomeScreen(viewModel: AppViewModel) {
 @Composable
 fun SubjectsGridScreen(viewModel: AppViewModel) {
     val subjects = listOf(
-        Pair("علم الأحياء", "الأحياء والتركيب الجيني"),
-        Pair("الفيزياء الحديثة", "الميكانيكا والطاقة الكونية"),
-        Pair("الكيمياء العضوية", "العناصر والتفاعلات الحيوية"),
-        Pair("الرياضيات واللغارتمات", "التفاضل وحلول الجبر المتقدم"),
-        Pair("الغة العربية الفصحى", "النحو والصرف والبلاغة"),
-        Pair("اللغويات الأجنبية (إنجليزي)", "القواعد والكتابة الإبداعية")
+        Triple("علم الأحياء", "الأحياء والتركيب الجيني", StudyEmerald),
+        Triple("الفيزياء الحديثة", "الميكانيكا والطاقة الكونية", StudyBlueDark),
+        Triple("الكيمياء العضوية", "العناصر والتفاعلات الحيوية", StudyOrangeAccent),
+        Triple("الرياضيات واللغارتمات", "التفاضل وحلول الجبر المتقدم", StudyGold),
+        Triple("اللغة العربية الفصحى", "النحو والصرف والبلاغة", StudyOrangeLight),
+        Triple("اللغويات الأجنبية (إنجليزي)", "القواعد والكتابة الإبداعية", StudySky)
     )
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.End) {
@@ -845,31 +1045,74 @@ fun SubjectsGridScreen(viewModel: AppViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.fillMaxSize()) {
-            items(subjects) { sub ->
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(subjects) { (name, desc, color) ->
                 Card(
-                    modifier = Modifier
-                        .padding(6.dp)
-                        .height(130.dp)
+                     modifier = Modifier
+                        .fillMaxWidth()
+                        .height(135.dp)
                         .clickable {
-                            viewModel.studentSelectedSubject.value = sub.first
+                            viewModel.studentSelectedSubject.value = name
                             viewModel.navigateTo(Screen.Lessons)
                         },
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, color.copy(alpha = 0.22f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp).fillMaxSize(), verticalArrangement = Arrangement.Bottom, horizontalAlignment = Alignment.End) {
+                    Column(
+                        modifier = Modifier.padding(14.dp).fillMaxSize(),
+                        verticalArrangement = Arrangement.SpaceBetween,
+                        horizontalAlignment = Alignment.End
+                    ) {
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(StudyBluePrimary.copy(alpha = 0.1f)),
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(color.copy(alpha = 0.12f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.Info, contentDescription = null, tint = StudyBluePrimary, modifier = Modifier.size(18.dp))
+                            Icon(
+                                imageVector = when(name) {
+                                    "علم الأحياء" -> Icons.Default.Info
+                                    "الفيزياء الحديثة" -> Icons.Default.Star
+                                    "الكيمياء العضوية" -> Icons.Default.Build
+                                    "الرياضيات واللغارتمات" -> Icons.Default.Add
+                                    "اللغة العربية الفصحى" -> Icons.Default.Menu
+                                    else -> Icons.Default.Send
+                                },
+                                contentDescription = null,
+                                tint = color,
+                                modifier = Modifier.size(18.dp)
+                            )
                         }
-                        Spacer(modifier = Modifier.weight(1f))
-                        Text(text = sub.first, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        Text(text = sub.second, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = name,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Right,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = desc,
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                textAlign = TextAlign.Right,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                lineHeight = 13.sp
+                            )
+                        }
                     }
                 }
             }

@@ -124,6 +124,102 @@ object GeminiService {
     }
 
     /**
+     * Primary method to query Gemini in a multimodal fashion (text prompt + base64 file attachment)
+     */
+    suspend fun generateMultimodalContent(
+        prompt: String,
+        mimeType: String,
+        base64Data: String,
+        systemInstruction: String? = null,
+        responseJsonSchema: Boolean = false
+    ): String = withContext(Dispatchers.IO) {
+        val apiKey = BuildConfig.GEMINI_API_KEY
+        if (!isApiKeyAvailable()) {
+            return@withContext "API_KEY_MISSING"
+        }
+
+        try {
+            val requestJson = JSONObject()
+            
+            // Contents
+            val contentsArray = JSONArray()
+            val contentObj = JSONObject()
+            val partsArray = JSONArray()
+            
+            // Text part
+            val textPartObj = JSONObject()
+            textPartObj.put("text", prompt)
+            partsArray.put(textPartObj)
+            
+            // Inline data part
+            val inlineDataPartObj = JSONObject()
+            val inlineDataObj = JSONObject()
+            inlineDataObj.put("mimeType", mimeType)
+            inlineDataObj.put("data", base64Data)
+            inlineDataPartObj.put("inlineData", inlineDataObj)
+            partsArray.put(inlineDataPartObj)
+            
+            contentObj.put("parts", partsArray)
+            contentsArray.put(contentObj)
+            requestJson.put("contents", contentsArray)
+
+            // System Instruction
+            if (systemInstruction != null) {
+                val sysInstrObj = JSONObject()
+                val sysPartsArray = JSONArray()
+                val sysPartObj = JSONObject()
+                sysPartObj.put("text", systemInstruction)
+                sysPartsArray.put(sysPartObj)
+                sysInstrObj.put("parts", sysPartsArray)
+                requestJson.put("systemInstruction", sysInstrObj)
+            }
+
+            // Generation Config
+            val generationConfig = JSONObject()
+            if (responseJsonSchema) {
+                generationConfig.put("responseMimeType", "application/json")
+            }
+            generationConfig.put("temperature", 0.4)
+            requestJson.put("generationConfig", generationConfig)
+
+            val mediaType = "application/json; charset=utf-8".toMediaType()
+            val requestBody = requestJson.toString().toRequestBody(mediaType)
+
+            val request = Request.Builder()
+                .url("$BASE_URL?key=$apiKey")
+                .post(requestBody)
+                .addHeader("Content-Type", "application/json")
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    val errBody = response.body?.string() ?: ""
+                    Log.e(TAG, "Gemini API Multimodal unsuccessful: Code ${response.code}, Body: $errBody")
+                    return@withContext "ERROR_CODE_${response.code}: $errBody"
+                }
+
+                val responseStr = response.body?.string() ?: ""
+                val responseJson = JSONObject(responseStr)
+                
+                val candidatesArray = responseJson.optJSONArray("candidates")
+                if (candidatesArray != null && candidatesArray.length() > 0) {
+                    val candidate = candidatesArray.getJSONObject(0)
+                    val content = candidate.optJSONObject("content")
+                    val parts = content?.optJSONArray("parts")
+                    if (parts != null && parts.length() > 0) {
+                        return@withContext parts.getJSONObject(0).optString("text")
+                    }
+                }
+                
+                return@withContext "Failed to parse content from multimodal request."
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Exception during Gemini Multimodal Call", e)
+            return@withContext "عذراً، حدث خطأ أثناء تحليل الملف: ${e.localizedMessage}"
+        }
+    }
+
+    /**
      * UI Helper to clean JSON string returned from Gemini (sometimes gets wrapped in triple backticks)
      */
     fun sanitizeJsonString(raw: String): String {

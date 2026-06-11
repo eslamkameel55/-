@@ -2,20 +2,29 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Light Theme brand palettes
-val StudyBluePrimary = Color(0xFF1E88E5)
-val StudyBlueDark = Color(0xFF1565C0)
-val StudyOrangeAccent = Color(0xFFFF6D00)
-val StudyOrangeLight = Color(0xFFFFB74D)
+// Premium Galactic & Modern Indigo/Magenta/Cyan branding
+val StudyBluePrimary = Color(0xFF6366F1) // Premium Indigo
+val StudyBlueDark = Color(0xFF4F46E5)    // Vibrant Deep Indigo
+val StudyOrangeAccent = Color(0xFFD946EF) // Radiant Orchid/Magenta
+val StudyOrangeLight = Color(0xFFF43F5E)  // Rose pink
 
-// Slate and Grays for clean, structured layouts
-val SlateDarkBg = Color(0xFF0F172A)
-val SlateCardBg = Color(0xFF1E293B)
-val LightBg = Color(0xFFF1F5F9)
-val LightCard = Color(0xFFFFFFFF)
+// Vibrant Status indicators (No more plain colors)
+val StudyEmerald = Color(0xFF10B981) // Cyber Mint Green
+val StudyGold = Color(0xFFF59E0B)    // Amber Gold
+val StudySky = Color(0xFF06B6D4)     // Radiant Ocean Cyan
 
-val TextPrimaryDark = Color(0xFFF8FAFC)
-val TextSecondaryDark = Color(0xFF94A3B8)
-val TextPrimaryLight = Color(0xFF0F172A)
-val TextSecondaryLight = Color(0xFF475569)
+// Slate Dark Theme colors (Elegant Cyber Space/Glassmorphic aesthetics)
+val SlateDarkBg = Color(0xFF090D16)   // Dark Cosmic Slate
+val SlateCardBg = Color(0xFF151D2F)   // Fine frosted dark glass container
+val SlateBorder = Color(0xFF24324D)   // Soft glowing micro-border
+
+// Minimalist Elegant Light Theme colors
+val LightBg = Color(0xFFF8FAFC)       // Safe light zinc canvas
+val LightCard = Color(0xFFFFFFFF)     // Clean white surface
+val LightBorder = Color(0xFFE2E8F0)   // Neutral slate line
+
+val TextPrimaryDark = Color(0xFFF8FAFC)   // Brilliant white
+val TextSecondaryDark = Color(0xFF94A3B8) // Muted lavender-slate
+val TextPrimaryLight = Color(0xFF0F172A)  // Ink black
+val TextSecondaryLight = Color(0xFF64748B)// Deep steel gray
 

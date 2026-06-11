@@ -106,19 +106,19 @@ fun RtlBottomBar(viewModel: AppViewModel, currentScreen: Screen) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 10.dp, vertical = 10.dp)
-            .height(68.dp),
-        shape = RoundedCornerShape(22.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .height(64.dp),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
     ) {
         Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = 6.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Tab 7: Settings / Profile
+            // Tab 5: Settings / Profile
             RtlBottomBar3DItem(
                 selected = currentScreen == Screen.Settings || currentScreen == Screen.Profile,
                 onClick = {
@@ -128,32 +128,6 @@ fun RtlBottomBar(viewModel: AppViewModel, currentScreen: Screen) {
                 },
                 icon = { Icon(Icons.Default.Settings, contentDescription = "الإعدادات") },
                 label = "الإعدادات",
-                accentColor = StudyOrangeAccent
-            )
-
-            // Tab 6: Weekly study organizer
-            RtlBottomBar3DItem(
-                selected = currentScreen == Screen.StudyPlan,
-                onClick = {
-                    viewModel.navigationStack.clear()
-                    viewModel.navigationStack.add(Screen.Home)
-                    viewModel.navigateTo(Screen.StudyPlan)
-                },
-                icon = { Icon(Icons.Default.Check, contentDescription = "المنظم") },
-                label = "المنظم",
-                accentColor = StudyBluePrimary
-            )
-
-            // Tab 5: Exams / Quizzes
-            RtlBottomBar3DItem(
-                selected = currentScreen == Screen.Exams || currentScreen == Screen.Results,
-                onClick = {
-                    viewModel.navigationStack.clear()
-                    viewModel.navigationStack.add(Screen.Home)
-                    viewModel.navigateTo(Screen.Exams)
-                },
-                icon = { Icon(Icons.Default.Star, contentDescription = "الاختبارات") },
-                label = "الاختبارات",
                 accentColor = StudyOrangeAccent
             )
 
