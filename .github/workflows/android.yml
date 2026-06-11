@@ -22,8 +22,8 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Create .env Mock File
-        run: echo "GEMINI_API_KEY=mock_key_for_ci" > .env
+      - name: Create .env File
+        run: echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > .env
 
       - name: Build Debug APK
         run: gradle assembleDebug --no-daemon
